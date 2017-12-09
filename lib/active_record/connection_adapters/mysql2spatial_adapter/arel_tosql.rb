@@ -1,6 +1,8 @@
+# -----------------------------------------------------------------------------
 #
 # Mysql2Spatial adapter for ActiveRecord
 #
+# -----------------------------------------------------------------------------
 # Copyright 2010 Daniel Azuma
 #
 # All rights reserved.
@@ -28,12 +30,15 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+# -----------------------------------------------------------------------------
+;
 
 
 # :stopdoc:
 
 module Arel
   module Visitors
+
     class MySQL2Spatial < MySQL
 
       if ::Arel::Visitors.const_defined?(:BindVisitor)

@@ -1,6 +1,8 @@
+# -----------------------------------------------------------------------------
 #
 # Mysql2Spatial adapter for ActiveRecord
 #
+# -----------------------------------------------------------------------------
 # Copyright 2010 Daniel Azuma
 #
 # All rights reserved.
@@ -28,6 +30,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+# -----------------------------------------------------------------------------
+;
 
 
 # :stopdoc:
@@ -37,7 +41,8 @@ module ActiveRecord
     module Mysql2SpatialAdapter
       class MainAdapter < ConnectionAdapters::Mysql2Adapter
 
-        NATIVE_DATABASE_TYPES = Mysql2Adapter::NATIVE_DATABASE_TYPES.merge(spatial: { name: 'geometry' })
+        NATIVE_DATABASE_TYPES = Mysql2Adapter::NATIVE_DATABASE_TYPES.merge(:spatial => {:name => "geometry"})
+
 
         def initialize(*args_)
           super
@@ -47,29 +52,35 @@ module ActiveRecord
           end
         end
 
+
         def set_rgeo_factory_settings(factory_settings_)
           @rgeo_factory_settings = factory_settings_
         end
+
 
         def adapter_name
           Mysql2SpatialAdapter::ADAPTER_NAME
         end
 
+
         def spatial_column_constructor(name_)
           ::RGeo::ActiveRecord::DEFAULT_SPATIAL_COLUMN_CONSTRUCTORS[name_]
         end
+
 
         def native_database_types
           NATIVE_DATABASE_TYPES
         end
 
+
         def quote(value_, column_=nil)
           if ::RGeo::Feature::Geometry.check_type(value_)
-            "GeomFromWKB(0x#{::RGeo::WKRep::WKBGenerator.new(hex_format: true).generate(value_)},#{value_.srid})"
+            "GeomFromWKB(0x#{::RGeo::WKRep::WKBGenerator.new(:hex_format => true).generate(value_)},#{value_.srid})"
           else
             super
           end
         end
+
 
         def type_to_sql(type_, limit_=nil, precision_=nil, scale_=nil)
           if (info_ = spatial_column_constructor(type_.to_sym))
@@ -80,9 +91,10 @@ module ActiveRecord
           super(type_, limit_, precision_, scale_)
         end
 
+
         def add_index(table_name_, column_name_, options_={})
           if options_[:spatial]
-            index_name_ = index_name(table_name_, column: Array(column_name_))
+            index_name_ = index_name(table_name_, :column => Array(column_name_))
             if ::Hash === options_
               index_name_ = options_[:name] || index_name_
             end
@@ -92,42 +104,47 @@ module ActiveRecord
           end
         end
 
+
         def columns(table_name_, name_=nil)
-          result_ = execute("SHOW FIELDS FROM #{quote_table_name(table_name_)}", :skip_logging)
+          result_ = @connection.query "SHOW FULL FIELDS FROM #{quote_table_name(table_name_)}"
           columns_ = []
-          result_.each(symbolize_keys: true, as: :hash) do |field_|
+          result_.each(:symbolize_keys => true, :as => :hash) do |field_|
             columns_ << SpatialColumn.new(@rgeo_factory_settings, table_name_.to_s,
-              field_[:Field], field_[:Default], field_[:Type], field_[:Null] == "YES")
+              field_[:Field], field_[:Default], lookup_cast_type(field_[:Type]), field_[:Type], field_[:Null] == "YES", field_[:Collation], field_[:Extra])
           end
           columns_
         end
 
-        # Returns an array of indexes for the given table.
+
         def indexes(table_name_, name_=nil)
           indexes_ = []
           current_index_ = nil
           result_ = execute("SHOW KEYS FROM #{quote_table_name(table_name_)}", name_)
-          result_.each(symbolize_keys: true, as: :hash) do |row_|
+          result_.each(:symbolize_keys => true, :as => :hash) do |row_|
             if current_index_ != row_[:Key_name]
               next if row_[:Key_name] == 'PRIMARY' # skip the primary key
               current_index_ = row_[:Key_name]
-              mysql_index_type = row_[:Index_type].downcase.to_sym
-              index_type  = INDEX_TYPES.include?(mysql_index_type)  ? mysql_index_type : nil
-              index_using = INDEX_USINGS.include?(mysql_index_type) ? mysql_index_type : nil
-              options = [row_[:Table], row_[:Key_name], row_[:Non_unique].to_i == 0, [], [], nil, nil, index_type, index_using]
-              indexes_ << if mysql_index_type == :spatial
-                options.push(true)
-                ::RGeo::ActiveRecord::SpatialIndexDefinition.new(*options)
-              else
-                IndexDefinition.new(*options)
-              end
+              indexes_ << ::RGeo::ActiveRecord::SpatialIndexDefinition.new(row_[:Table], row_[:Key_name], row_[:Non_unique] == 0, [], [], row_[:Index_type] == 'SPATIAL')
             end
             last_index_ = indexes_.last
             last_index_.columns << row_[:Column_name]
-            last_index_.lengths << row_[:Sub_part] unless mysql_index_type == :spatial
+            last_index_.lengths << row_[:Sub_part] unless last_index_.spatial
           end
           indexes_
         end
+
+
+        protected
+
+        def initialize_type_map(m)
+          super
+          register_class_with_limit m, %r(geometry)i, Type::Spatial
+          m.alias_type %r(point)i, 'geometry'
+          m.alias_type %r(linestring)i, 'geometry'
+          m.alias_type %r(polygon)i, 'geometry'
+        end
+
+
       end
     end
   end

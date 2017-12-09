@@ -3,7 +3,7 @@
 The MySQL2 Spatial \ActiveRecord Adapter is an \ActiveRecord connection
 adapter based on the standard mysql2 adapter. It extends the standard
 adapter to provide support for spatial columns and indexes in MySQL,
-using the {RGeo}[http://github.com/rgeo/rgeo] library to represent
+using the {RGeo}[http://github.com/dazuma/rgeo] library to represent
 spatial data in Ruby. Like the standard mysql2 adapter, this adapter
 requires the mysql2 gem.
 
@@ -11,7 +11,7 @@ requires the mysql2 gem.
 
 === Spatial Migrations
 
-First, this adapter extends the migration syntax to support creating
+First, this adapter extends the migration syntax to support creating 
 spatial columns and indexes. To create a spatial column, use the
 <tt>:geometry</tt> type, or any of the OGC spatial types such as
 <tt>:point</tt> or <tt>:line_string</tt>. To create a spatial index, set
@@ -19,15 +19,15 @@ the <tt>:spatial</tt> option to true. Remember that, on some versions of
 MySQL, only the MyISAM engine supports spatial indexes, and the indexed
 column may need to be NOT NULL.
 
-Examples (require update):
+Examples:
 
-  create_table :my_spatial_table, options: 'ENGINE=MyISAM' do |t|
-    t.column :latlon, :point, null: false
+  create_table :my_spatial_table, :options => 'ENGINE=MyISAM' do |t|
+    t.column :latlon, :point, :null => false
     t.line_string :path
     t.geometry :shape
   end
   change_table :my_spatial_table do |t|
-    t.index :latlon, spatial: true
+    t.index :latlon, :spatial => true
   end
 
 === Spatial Attributes
@@ -55,13 +55,13 @@ the "rgeo-activerecord" gem.
 Examples, given the spatial table defined above:
 
   class MySpatialTable < ActiveRecord::Base
-
+    
     # By default, use the GEOS implementation for spatial columns.
     self.rgeo_factory_generator = RGeo::Geos.method(:factory)
-
+    
     # But use a geographic implementation for the :latlon column.
     set_rgeo_factory_for_column(:latlon, RGeo::Geographic.spherical_factory)
-
+    
   end
 
 Now you can interact with the data using the RGeo types:
@@ -80,11 +80,11 @@ Now you can interact with the data using the RGeo types:
 You can create simple queries based on objective equality in the same way
 you would on a scalar column:
 
-  rec = MySpatialTable.where(latlon: RGeo::Geos.factory.point(-122, 47)).first
+  rec = MySpatialTable.where(:latlon => RGeo::Geos.factory.point(-122, 47)).first
 
 You can also use WKT:
 
-  rec = MySpatialTable.where(latlon: 'POINT(-122 47)').first
+  rec = MySpatialTable.where(:latlon => 'POINT(-122 47)').first
 
 The adapter also provides experimental support for more complex queries
 such as radius searches. However, these extensions require Arel 2.1
@@ -98,13 +98,13 @@ write more complex queries in SQL.
 
 This adapter has the following requirements:
 
-* Ruby 1.9.3 or later. Ruby 2.0.0 or later preferred.
+* Ruby 1.8.7 or later. Ruby 1.9.2 or later preferred.
 * MySQL server 5.0 or later required for spatial extensions.
-* \ActiveRecord 4.0.0 or later. Earlier versions will not work.
-  Should be compatible with Rails versions through 4.0.x-4.1.x.
+* \ActiveRecord 3.0.3 or later. Earlier versions will not work.
+  Should be compatible with Rails versions through 3.2.x.
 * mysql2 gem 0.2.13 or later.
 * rgeo gem 0.3.15 or later.
-* rgeo-activerecord gem 1.x.
+* rgeo-activerecord gem 0.4.5 or later.
 
 Install this adapter as a gem:
 
@@ -149,44 +149,17 @@ Rails as of Rails 3.0.3, so we hope it will get rectified at some point.
 
 === Development and support
 
-==== Setup
+Documentation is available at http://dazuma.github.com/activerecord-mysql2spatial-adapter/rdoc
 
-To install the most recent supported versions of required gems and run the tests against them,
-
-Install {GEOS}[https://trac.osgeo.org/geos/] as appropriate for your OS.
-rgeo works to some extent without GEOS, but this gem's tests require it.
-Be sure to install GEOS before installing gems so that it's compiled into rgeo.
-
-Create a test database configuration file <tt>test/database.yml</tt> with the following content.
-If you like you can copy <tt>test/database-example.yml</tt> to <tt>test/database.yml</tt>.
-Replace the database, username and password with correct values.
-
-    adapter:   mysql2spatial
-    encoding:  utf8
-    reconnect: true
-    host:      localhost
-    database:  YOUR_DATABASE_NAME
-    username:  YOUR_USER_NAME
-    password:  PASSWORD_OR_NOTHING
-
-Then,
-
-    bundle install
-    bundle exec rake test
-
-Always do this before sharing a revision with others.
-
-==== Resources
-
-Documentation is available at http://rgeo.github.com/activerecord-mysql2spatial-adapter/rdoc
-
-Source code is hosted on Github at http://github.com/rgeo/activerecord-mysql2spatial-adapter
+Source code is hosted on Github at http://github.com/dazuma/activerecord-mysql2spatial-adapter
 
 Contributions are welcome. Fork the project on Github.
 
-Report bugs on Github issues at http://github.org/rgeo/activerecord-mysql2spatial-adapter/issues
+Report bugs on Github issues at http://github.org/dazuma/activerecord-mysql2spatial-adapter/issues
 
 Support available on the rgeo-users google group at http://groups.google.com/group/rgeo-users
+
+Contact the author at dazuma at gmail dot com.
 
 === Acknowledgments
 

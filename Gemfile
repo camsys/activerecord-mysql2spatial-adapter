@@ -1,6 +1,8 @@
+# -----------------------------------------------------------------------------
 #
 # Gemfile used for CI testing.
 #
+# -----------------------------------------------------------------------------
 # Copyright 2012 Daniel Azuma
 #
 # All rights reserved.
@@ -28,7 +30,17 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+# -----------------------------------------------------------------------------
+;
 
-source 'https://rubygems.org'
 
-gemspec
+source "https://rubygems.org"
+
+gem 'rgeo-activerecord', '~> 2.0'
+gem 'mysql2', '>= 0.2.13'
+gem 'activerecord', '~> 4.2'
+
+group(:test) do
+  gem 'rake', '>= 0.9.2'
+  gem 'rdoc', '>= 3.12'
+end
